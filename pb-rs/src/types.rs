@@ -1505,6 +1505,9 @@ impl Enumerator {
         for f in self.fields.iter_mut() {
             sanitize_pascal(&mut f.0, config);
         }
+        for f in self.partially_qualified_fields.iter_mut() {
+            sanitize_pascal(&mut f.0, config);
+        }
     }
 
     fn get_modules(&self, desc: &FileDescriptor) -> String {

@@ -1,3 +1,7 @@
+use std::process::id;
+use convert_case::{Case, Casing};
+use crate::types::Config;
+
 static RUST_KEYWORDS: [&str; 75] = [
     "abstract",
     "alignof",
@@ -76,21 +80,30 @@ static RUST_KEYWORDS: [&str; 75] = [
     "yield",
 ];
 
+pub fn sanitize_pascal(ident: &mut String, config: &Config) {
+    *ident = map_dotted(ident, |part| sanitize_part(&part.to_case(Case::Pascal)))
+}
+
+pub fn sanitize_snake(ident: &mut String, config: &Config) {
+    *ident = map_dotted(ident, |part| sanitize_part(&part.to_case(Case::Snake)))
+}
+
+fn map_dotted(ident: &str, func: impl FnMut(&str) -> String) -> String {
+    ident.split('.').map(func).collect::<Vec<_>>().join(".")
+}
+
 /// Check if the identifier is a Rust keyword and appends a `_pb` suffix if that's the case
+///
+/// @deprecated Use sanitize_camel or sanitize_pascal instead.
+#[deprecated]
 pub fn sanitize_keyword(ident: &mut String) {
-    if !ident.contains('.') && RUST_KEYWORDS.contains(&&**ident) {
-        ident.push_str("_pb");
+    *ident = map_dotted(ident, sanitize_part);
+}
+
+pub fn sanitize_part(ident: &str) -> String {
+    if RUST_KEYWORDS.contains(&ident) {
+        format!("{}_pb", ident)
     } else {
-        *ident = ident
-            .split('.')
-            .map(|s| {
-                if RUST_KEYWORDS.contains(&s) {
-                    format!("{}_pb", s)
-                } else {
-                    s.to_string()
-                }
-            })
-            .collect::<Vec<_>>()
-            .join(".");
+        ident.to_string()
     }
 }

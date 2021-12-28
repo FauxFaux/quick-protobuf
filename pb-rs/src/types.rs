@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use log::{debug, warn};
 
 use crate::errors::{Error, Result};
-use crate::keywords::sanitize_keyword;
+use crate::keywords::{sanitize_keyword, sanitize_pascal, sanitize_snake};
 use crate::parser::file_descriptor;
 
 fn sizeof_varint(v: u32) -> usize {
@@ -1407,20 +1407,20 @@ impl Message {
         Ok(())
     }
 
-    fn sanitize_names(&mut self) {
-        sanitize_keyword(&mut self.name);
-        sanitize_keyword(&mut self.package);
+    fn sanitize_names(&mut self, config: &Config) {
+        sanitize_pascal(&mut self.name, config);
+        sanitize_snake(&mut self.package, config);
         for f in self.fields.iter_mut() {
-            sanitize_keyword(&mut f.name);
+            sanitize_snake(&mut f.name, config);
         }
         for m in &mut self.messages {
-            m.sanitize_names();
+            m.sanitize_names(config);
         }
         for e in &mut self.enums {
-            e.sanitize_names();
+            e.sanitize_names(config);
         }
         for o in &mut self.oneofs {
-            o.sanitize_names();
+            o.sanitize_names(config);
         }
     }
 
@@ -1499,11 +1499,11 @@ impl Enumerator {
             .collect();
     }
 
-    fn sanitize_names(&mut self) {
-        sanitize_keyword(&mut self.name);
-        sanitize_keyword(&mut self.package);
+    fn sanitize_names(&mut self, config: &Config) {
+        sanitize_pascal(&mut self.name, config);
+        sanitize_snake(&mut self.package, config);
         for f in self.fields.iter_mut() {
-            sanitize_keyword(&mut f.0);
+            sanitize_pascal(&mut f.0, config);
         }
     }
 
@@ -1597,11 +1597,11 @@ impl OneOf {
         self.module = module.to_string();
     }
 
-    fn sanitize_names(&mut self) {
-        sanitize_keyword(&mut self.name);
-        sanitize_keyword(&mut self.package);
+    fn sanitize_names(&mut self, config: &Config) {
+        sanitize_pascal(&mut self.name, config);
+        sanitize_snake(&mut self.package, config);
         for f in self.fields.iter_mut() {
-            sanitize_keyword(&mut f.name);
+            sanitize_pascal(&mut f.name, config);
         }
     }
 
@@ -1857,7 +1857,7 @@ impl FileDescriptor {
             desc.convert_field_types(&FieldType::BytesCow, &FieldType::Bytes_);
         }
         desc.set_defaults()?;
-        desc.sanitize_names();
+        desc.sanitize_names(config);
 
         if config.single_module {
             desc.package = "".to_string();
@@ -1872,7 +1872,7 @@ impl FileDescriptor {
         };
 
         if !file_package.is_empty() {
-            sanitize_keyword(&mut file_stem);
+            sanitize_snake(&mut file_stem, config);
         }
         let mut out_file = config.out_file.with_file_name(format!("{}.rs", file_stem));
 
@@ -2056,12 +2056,12 @@ impl FileDescriptor {
         Ok(())
     }
 
-    fn sanitize_names(&mut self) {
+    fn sanitize_names(&mut self, config: &Config) {
         for m in &mut self.messages {
-            m.sanitize_names();
+            m.sanitize_names(config);
         }
         for e in &mut self.enums {
-            e.sanitize_names();
+            e.sanitize_names(config);
         }
     }
 
